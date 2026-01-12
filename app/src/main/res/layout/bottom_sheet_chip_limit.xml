@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="256dp"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <ImageView
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/pill"
+        android:layout_gravity="left"
+        android:layout_marginBottom="12dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="약을 모두 선택했어요"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:gravity="left"
+        android:textColor="#000000"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="최대 5개의 약만 검색할 수 있어요"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:gravity="left"
+        android:layout_marginBottom="24dp"/>
+
+    <Button
+        android:id="@+id/confirmButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="확인"
+        android:backgroundTint="#333333"
+        android:layout_marginTop="24dp"
+        android:textColor="#FFFFFF"/>
+</LinearLayout>

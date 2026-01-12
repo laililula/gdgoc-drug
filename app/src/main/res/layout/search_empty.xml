@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
+
+    <!-- 뒤로가기 아이콘 -->
+    <ImageView
+        android:id="@+id/backIcon"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="40dp"
+        android:src="@drawable/ic_back"
+        android:contentDescription="뒤로가기"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- 최근 검색어 텍스트 -->
+    <TextView
+        android:id="@+id/recentTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="최근 검색어"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#999999"
+        android:layout_marginTop="26dp"
+        app:layout_constraintTop_toBottomOf="@id/backIcon"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="40dp"/>
+
+    <!-- "검색한 기록이 없어요" 메시지 (CardView 활용) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/emptyBox"
+        android:layout_width="320dp"
+        android:layout_height="93dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#F4F3F3"
+        app:layout_constraintTop_toBottomOf="@id/recentTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="검색한 기록이 없어요"
+            android:textColor="#999999"
+            android:textSize="14sp"
+            android:gravity="center"/>
+    </androidx.cardview.widget.CardView>
+
+    <!-- 하단 검색창 -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/searchBar"
+        android:layout_width="328dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="2dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <EditText
+                android:id="@+id/searchInput"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="14sp"
+                android:hint="약을 검색해보세요"
+                android:background="@android:color/transparent"
+                android:inputType="text"/>
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/search_bt"
+                android:contentDescription="검색 아이콘" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+</androidx.constraintlayout.widget.ConstraintLayout>
