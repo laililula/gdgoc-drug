@@ -7,6 +7,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class DrugSearchAdapter(
+    private val selectedDrugs: Set<String>,
     private val onClick: (String) -> Unit
 ) : RecyclerView.Adapter<DrugSearchAdapter.ViewHolder>() {
 
@@ -19,12 +20,23 @@ class DrugSearchAdapter(
     }
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+
         private val drugNameText = view.findViewById<TextView>(R.id.drugNameText)
+        private val container = view   // item 전체
+        private val checkIcon = view.findViewById<View>(R.id.checkIcon) // ✅ 추가
 
         fun bind(name: String) {
             drugNameText.text = name
+
+            val isSelected = selectedDrugs.contains(name)
+
+            // ✅ 선택 UI 반영
+            container.isSelected = isSelected
+            checkIcon.visibility = if (isSelected) View.VISIBLE else View.GONE
+
             itemView.setOnClickListener {
                 onClick(name)
+                notifyItemChanged(adapterPosition)
             }
         }
     }
@@ -41,4 +53,3 @@ class DrugSearchAdapter(
 
     override fun getItemCount(): Int = items.size
 }
-

@@ -1,25 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="56dp"
-    xmlns:tool="http://schemas.android.com/tools"
-    android:layout_marginTop="8dp"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="0dp"
-    app:cardBackgroundColor="#F5F5F5">
+    android:layout_marginTop="15dp"
+    android:layout_marginStart="25dp"
+    android:layout_marginEnd="25dp"
+    android:background="@drawable/bg_drug_item_selector"
+    android:padding="15dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:elevation="5dp">
 
     <TextView
         android:id="@+id/drugNameText"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tool:text="타이레놀"
-        android:paddingBottom="15dp"
-        android:paddingTop="15dp"
-        android:paddingLeft="20dp"
-        android:paddingRight="20dp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
         android:textSize="15sp"
         android:textColor="#141414"/>
-</androidx.cardview.widget.CardView>
+
+    <ImageView
+        android:id="@+id/checkIcon"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@drawable/ic_check"
+        android:visibility="gone"/>
+</LinearLayout>

@@ -74,9 +74,10 @@ class SearchResultFragment : Fragment() {
         // ---------------------------
         // RecyclerView 설정
         // ---------------------------
-        adapter = DrugSearchAdapter { drugName ->
-            onDrugClicked(drugName)
-        }
+        adapter = DrugSearchAdapter(
+            selectedDrugs = selectedDrugs,
+            onClick = { drugName -> onDrugClicked(drugName) }
+        )
 
         binding.drugRecycler.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -87,7 +88,7 @@ class SearchResultFragment : Fragment() {
         // Search 버튼 클릭
         // ---------------------------
         binding.searchButton.setOnClickListener {
-            requestInteractionAnalysis()
+            requestAiSummary()
         }
 
         binding.searchInput.addTextChangedListener(object : TextWatcher {
@@ -258,16 +259,17 @@ class SearchResultFragment : Fragment() {
             setOnCloseIconClickListener {
                 binding.chipGroup.removeView(this)
                 selectedDrugs.remove(drugName)
-                updateSearchButton()   // ✅ 중요
+                adapter.notifyDataSetChanged()
+                updateSearchButton()
             }
+
         }
 
         binding.chipGroup.addView(chip)
 
         updateSearchButton()          // ✅ 중요
 
-        binding.searchInput.text.clear()
-        adapter.submitList(emptyList())
+        adapter.notifyDataSetChanged()
     }
 
     private fun requestNutrientFromServer(drugName: String) {
@@ -300,6 +302,60 @@ class SearchResultFragment : Fragment() {
         })
     }
 
+    private fun requestNutrientAnalysisForSelectedDrugs() {
+        selectedDrugs.forEach { drug ->
+            requestNutrientFromServer(drug)
+        }
+    }
+
+    private fun requestAiSummary() {
+        if (selectedDrugs.isEmpty()) return
+
+        val client = OkHttpClient()
+
+        val drugArray = org.json.JSONArray()
+        selectedDrugs.forEach { drugArray.put(it) }
+
+        val json = JSONObject().apply {
+            put("drug_names", drugArray)
+        }
+
+        val body = json.toString()
+            .toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        val request = Request.Builder()
+            .url("http://10.0.2.2:8001/check/ai-summary")
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+
+            override fun onFailure(call: Call, e: IOException) {
+                android.util.Log.e("AI_SUMMARY", "요청 실패", e)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val raw = response.body?.string() ?: return
+                val json = JSONObject(raw)
+                val message = json.getString("ai_message")
+
+                if (!isAdded) return
+                requireActivity().runOnUiThread {
+                    openAiResultScreen(message)
+                }
+            }
+        })
+    }
+
+    private fun openAiResultScreen(message: String) {
+        parentFragmentManager.beginTransaction()
+            .replace(
+                R.id.fragmentContainer,
+                AiResultFragment.newInstance(message)
+            )
+            .addToBackStack(null)
+            .commit()
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

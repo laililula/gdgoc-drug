@@ -14,32 +14,19 @@
         android:src="@drawable/ic_back"
         android:contentDescription="뒤로가기"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="36dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- 소화기관 텍스트 -->
-    <TextView
-        android:id="@+id/digestiveLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="소화기관"
-        android:textStyle="bold"
-        android:textSize="14sp"
-        android:layout_marginTop="24dp"
-        android:layout_marginStart="16dp"
-        app:layout_constraintTop_toBottomOf="@id/backIcon"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <!-- 소화기관 선택 약 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/drugRecycler"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/digestiveLabel"
+        app:layout_constraintTop_toBottomOf="@id/backIcon"
         app:layout_constraintBottom_toTopOf="@id/searchBar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="20dp"/>
 
     <HorizontalScrollView
         android:id="@+id/chipScroll"
