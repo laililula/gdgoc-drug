@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,6 +35,8 @@ class SearchResultFragment : Fragment() {
     private val selectedDrugs = mutableSetOf<String>()  // 중복 방지
 
     private var searchRunnable: Runnable? = null
+
+    private val drugCardMap = mutableMapOf<String, DrugCardItem>()
 
     // ---------------------------
     // Fragment 생성자 패턴 (정석)
@@ -88,7 +91,9 @@ class SearchResultFragment : Fragment() {
         // Search 버튼 클릭
         // ---------------------------
         binding.searchButton.setOnClickListener {
-            requestAiSummary()
+            requestNutrientAnalysisForSelectedDrugs {
+                requestAiSummary()
+            }
         }
 
         binding.searchInput.addTextChangedListener(object : TextWatcher {
@@ -213,12 +218,12 @@ class SearchResultFragment : Fragment() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                android.util.Log.e("INTERACTION_RESULT", "서버 실패", e)
+                Log.e("INTERACTION_RESULT", "서버 실패", e)
             }
 
             override fun onResponse(call: Call, response: Response) {
                 val raw = response.body?.string()
-                android.util.Log.d("INTERACTION_RESULT", raw ?: "null")
+                Log.d("INTERACTION_RESULT", raw ?: "null")
             }
         })
     }
@@ -272,11 +277,15 @@ class SearchResultFragment : Fragment() {
         adapter.notifyDataSetChanged()
     }
 
-    private fun requestNutrientFromServer(drugName: String) {
+    private fun requestNutrientFromServer(
+        drugName: String,
+        onComplete: () -> Unit
+    ) {
         val client = OkHttpClient()
 
-        val json = JSONObject()
-        json.put("drug_name", drugName)
+        val json = JSONObject().apply {
+            put("drug_name", drugName)
+        }
 
         val requestBody = json.toString()
             .toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -289,22 +298,79 @@ class SearchResultFragment : Fragment() {
         client.newCall(request).enqueue(object : Callback {
 
             override fun onFailure(call: Call, e: IOException) {
-                android.util.Log.e("SERVER_NUTRIENT", "영양소 API 실패", e)
+                Log.e("SERVER_NUTRIENT", "실패: $drugName", e)
+                onComplete()
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val rawJson = response.body?.string()
+                val raw = response.body?.string() ?: run {
+                    onComplete()
+                    return
+                }
 
-                // 🔥 서버 응답 JSON 전체 그대로 출력
-                android.util.Log.d("SERVER_NUTRIENT", "HTTP ${response.code}")
-                android.util.Log.d("SERVER_NUTRIENT", rawJson ?: "null")
+                Log.d("NUTRIENT_RAW", """
+                    🔥 서버 원본 응답
+                    drugName = $drugName
+                    raw = $raw
+                    """.trimIndent())
+
+                val obj = JSONObject(raw)
+
+                val found = obj.optBoolean("found", false)
+
+                val depletion = obj.optJSONArray("depletion")
+                    ?.let { arr -> List(arr.length()) { arr.getString(it) } }
+                    ?: emptyList()
+
+                val avoid = obj.optJSONArray("avoid")
+                    ?.let { arr -> List(arr.length()) { arr.getString(it) } }
+                    ?: emptyList()
+
+                val foods = obj.optJSONArray("foods")
+                    ?.let { arr -> List(arr.length()) { arr.getString(it) } }
+                    ?: emptyList()
+
+                val summary = buildString {
+                    if (avoid.isNotEmpty()) {
+                        append("피해야 할 것: ")
+                        append(avoid.joinToString(", "))
+                    }
+                    if (foods.isNotEmpty()) {
+                        if (isNotEmpty()) append("\n")
+                        append("추천 음식: ")
+                        append(foods.joinToString(", "))
+                    }
+                }
+
+                // ✅ 여기 핵심: key = drugName
+                drugCardMap[drugName] = DrugCardItem(
+                    drugName = drugName,
+                    depletion = depletion,
+                    avoid = avoid,
+                    foods = foods,
+                    found = found
+                )
+
+                onComplete()
             }
         })
     }
 
-    private fun requestNutrientAnalysisForSelectedDrugs() {
+    private fun requestNutrientAnalysisForSelectedDrugs(
+        onAllComplete: () -> Unit
+    ) {
+        // 🔥🔥🔥 핵심 수정
+        drugCardMap.clear()
+
+        var remain = selectedDrugs.size
+
         selectedDrugs.forEach { drug ->
-            requestNutrientFromServer(drug)
+            requestNutrientFromServer(drug) {
+                remain--
+                if (remain == 0) {
+                    onAllComplete()
+                }
+            }
         }
     }
 
@@ -331,27 +397,38 @@ class SearchResultFragment : Fragment() {
         client.newCall(request).enqueue(object : Callback {
 
             override fun onFailure(call: Call, e: IOException) {
-                android.util.Log.e("AI_SUMMARY", "요청 실패", e)
+                Log.e("AI_SUMMARY", "요청 실패", e)
             }
 
             override fun onResponse(call: Call, response: Response) {
                 val raw = response.body?.string() ?: return
+
                 val json = JSONObject(raw)
                 val message = json.getString("ai_message")
 
                 if (!isAdded) return
                 requireActivity().runOnUiThread {
-                    openAiResultScreen(message)
+                    openAiResultScreen(
+                        message,
+                        ArrayList(drugCardMap.values)
+                    )
+
                 }
             }
         })
     }
 
-    private fun openAiResultScreen(message: String) {
+    private fun openAiResultScreen(
+        message: String,
+        drugCards: ArrayList<DrugCardItem>
+    ) {
         parentFragmentManager.beginTransaction()
             .replace(
                 R.id.fragmentContainer,
-                AiResultFragment.newInstance(message)
+                AiResultFragment.newInstance(
+                    message,
+                    drugCards
+                )
             )
             .addToBackStack(null)
             .commit()
