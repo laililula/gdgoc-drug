@@ -29,6 +29,8 @@ class SearchResultFragment : Fragment() {
     private var _binding: FragmentSearchResultBinding? = null
     private val binding get() = _binding!!
 
+    private lateinit var loadingOverlay: View
+
     private lateinit var adapter: DrugSearchAdapter
     private val handler = Handler(Looper.getMainLooper())
 
@@ -67,6 +69,8 @@ class SearchResultFragment : Fragment() {
 
         binding.searchButton.isEnabled = false
 
+        loadingOverlay = view.findViewById(R.id.loadingOverlay)
+
         // ---------------------------
         // 뒤로가기
         // ---------------------------
@@ -91,6 +95,11 @@ class SearchResultFragment : Fragment() {
         // Search 버튼 클릭
         // ---------------------------
         binding.searchButton.setOnClickListener {
+
+            // 🔥 화면 전체 색 바뀌며 로딩
+            loadingOverlay.visibility = View.VISIBLE
+            binding.searchButton.isEnabled = false
+
             requestNutrientAnalysisForSelectedDrugs {
                 requestAiSummary()
             }
@@ -398,6 +407,16 @@ class SearchResultFragment : Fragment() {
 
             override fun onFailure(call: Call, e: IOException) {
                 Log.e("AI_SUMMARY", "요청 실패", e)
+
+                if (!isAdded) return
+                requireActivity().runOnUiThread {
+
+                    // 🔥 실패해도 로딩 OFF
+                    loadingOverlay.visibility = View.GONE
+                    binding.searchButton.isEnabled = true
+
+                    Toast.makeText(requireContext(), "분석에 실패했습니다", Toast.LENGTH_SHORT).show()
+                }
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -408,6 +427,11 @@ class SearchResultFragment : Fragment() {
 
                 if (!isAdded) return
                 requireActivity().runOnUiThread {
+
+                    // 🔥🔥🔥 여기서 로딩 OFF
+                    loadingOverlay.visibility = View.GONE
+                    binding.searchButton.isEnabled = true
+
                     openAiResultScreen(
                         message,
                         ArrayList(drugCardMap.values)

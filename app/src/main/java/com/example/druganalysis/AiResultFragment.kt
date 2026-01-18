@@ -1,15 +1,22 @@
 package com.example.druganalysis
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.github.mikephil.charting.charts.PieChart
+import com.github.mikephil.charting.data.PieData
+import com.github.mikephil.charting.data.PieDataSet
+import com.github.mikephil.charting.data.PieEntry
 import com.google.android.flexbox.FlexboxLayout
+import com.google.android.material.chip.Chip
 
 class AiResultFragment : Fragment() {
 
@@ -36,6 +43,17 @@ class AiResultFragment : Fragment() {
     private lateinit var underlineDrugs: View
     private lateinit var underlineNutrients: View
 
+    // 영양소 탭 UI
+    private lateinit var nutrientSection: View
+    private lateinit var drugSection: View
+    private lateinit var nutrientChart: PieChart
+    private lateinit var nutrientChipFlexbox: FlexboxLayout
+    private lateinit var nutrientDrugRecyclerView: RecyclerView
+
+    // 데이터
+    private lateinit var nutrientDrugMap: Map<String, List<DrugCardItem>>
+    private var selectedNutrient: String? = null
+
     // 결과 리스트
     private lateinit var drugRecyclerView: RecyclerView
 
@@ -43,6 +61,7 @@ class AiResultFragment : Fragment() {
     private lateinit var cautionRecyclerView: RecyclerView
     private lateinit var backIcon: ImageView
     private lateinit var drugFlexbox: FlexboxLayout
+    private lateinit var saveButton: Button
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -57,9 +76,13 @@ class AiResultFragment : Fragment() {
 
         // 🔙 뒤로가기 버튼
         backIcon = view.findViewById(R.id.backIcon)
+        saveButton = view.findViewById(R.id.saveButton)
         backIcon.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
+
+        drugSection = view.findViewById(R.id.drugSection)
+        nutrientSection = view.findViewById(R.id.nutrientSection)
 
         summaryRecyclerView = view.findViewById(R.id.aiSentenceRecyclerView)
         cautionRecyclerView = view.findViewById(R.id.aiSentenceRecyclerView2)
@@ -80,6 +103,15 @@ class AiResultFragment : Fragment() {
         underlineNutrients = view.findViewById(R.id.underlineNutrients)
         drugRecyclerView = view.findViewById(R.id.drugResultRecyclerView)
 
+        nutrientSection = view.findViewById(R.id.nutrientSection)
+        nutrientChart = view.findViewById(R.id.nutrientDonutChart)
+        nutrientChipFlexbox = view.findViewById(R.id.nutrientChipFlexbox)
+        nutrientDrugRecyclerView = view.findViewById(R.id.nutrientDrugRecyclerView)
+
+        nutrientDrugRecyclerView.layoutManager =
+            LinearLayoutManager(requireContext())
+
+
         drugRecyclerView.layoutManager = LinearLayoutManager(requireContext())
 
         val drugCards =
@@ -96,11 +128,75 @@ class AiResultFragment : Fragment() {
             }
         )
 
+        nutrientDrugMap =
+            drugCards
+                .flatMap { drug ->
+                    drug.depletion.map { nutrient -> nutrient to drug }
+                }
+                .groupBy(
+                    keySelector = { it.first },
+                    valueTransform = { it.second }
+                )
+
         setSelectedTab(true)
+
+        saveButton.setOnClickListener {
+            SaveMyDrugBottomSheet(
+                drugs = drugCards
+            ) { selectedList ->
+                // 👉 여기서 다음 Fragment로 이동
+                //openNextFragment(selectedList)
+            }.show(parentFragmentManager, "SaveMyDrug")
+        }
 
         tabDrugs.setOnClickListener { setSelectedTab(true) }
         tabNutrients.setOnClickListener { setSelectedTab(false) }
     }
+
+    private fun renderNutrientChips() {
+        nutrientChipFlexbox.removeAllViews()
+
+        nutrientDrugMap.keys.forEach { nutrient ->
+
+            val chip = Chip(requireContext()).apply {
+                text = nutrient
+                isCheckable = true
+                isChecked = nutrient == selectedNutrient
+
+                setOnClickListener {
+                    // 🔥 핵심: 선택 상태 변경
+                    if (selectedNutrient != nutrient) {
+                        onNutrientSelected(nutrient)
+                        renderNutrientChips() // 🔥 전체 재렌더
+                    }
+                }
+            }
+
+            nutrientChipFlexbox.addView(chip)
+        }
+    }
+
+    private fun onNutrientSelected(nutrient: String) {
+        selectedNutrient = nutrient
+
+        setupDonutChart(nutrient)
+
+        val list = nutrientDrugMap[nutrient].orEmpty()
+        nutrientDrugRecyclerView.adapter =
+            NutrientDrugAdapter(list) { drug ->
+                openDrugDetail(drug)
+            }
+    }
+
+//    private fun openNextFragment(selected: List<DrugCardItem>) {
+//        parentFragmentManager.beginTransaction()
+//            .replace(
+//                R.id.fragmentContainer,
+//                Fragment.newInstance(ArrayList(selected))
+//            )
+//            .addToBackStack(null)
+//            .commit()
+//    }
 
     private fun openDrugDetail(item: DrugCardItem) {
         parentFragmentManager.beginTransaction()
@@ -171,28 +267,83 @@ class AiResultFragment : Fragment() {
 
     private fun setSelectedTab(isDrugTab: Boolean) {
         if (isDrugTab) {
-            tabDrugs.setTextColor(requireContext().getColor(android.R.color.black))
-            underlineDrugs.setBackgroundColor(requireContext().getColor(android.R.color.black))
+            tabDrugs.setTextColor(Color.BLACK)
+            underlineDrugs.setBackgroundColor(Color.BLACK)
 
-            tabNutrients.setTextColor(requireContext().getColor(android.R.color.darker_gray))
-            underlineNutrients.setBackgroundColor(
-                requireContext().getColor(android.R.color.transparent)
-            )
+            tabNutrients.setTextColor(Color.GRAY)
+            underlineNutrients.setBackgroundColor(Color.TRANSPARENT)
 
-            // 👉 약 리스트 표시
-            drugRecyclerView.visibility = View.VISIBLE
+            drugSection.visibility = View.VISIBLE
+            nutrientSection.visibility = View.GONE
 
         } else {
-            tabNutrients.setTextColor(requireContext().getColor(android.R.color.black))
-            underlineNutrients.setBackgroundColor(requireContext().getColor(android.R.color.black))
+            tabNutrients.setTextColor(Color.BLACK)
+            underlineNutrients.setBackgroundColor(Color.BLACK)
 
-            tabDrugs.setTextColor(requireContext().getColor(android.R.color.darker_gray))
-            underlineDrugs.setBackgroundColor(
-                requireContext().getColor(android.R.color.transparent)
-            )
+            tabDrugs.setTextColor(Color.GRAY)
+            underlineDrugs.setBackgroundColor(Color.TRANSPARENT)
 
-            // 👉 영양소 탭일 때 (추후 RecyclerView 교체 가능)
-            drugRecyclerView.visibility = View.GONE
+            drugSection.visibility = View.GONE
+            nutrientSection.visibility = View.VISIBLE
+
+            if (selectedNutrient == null && nutrientDrugMap.isNotEmpty()) {
+                selectedNutrient = nutrientDrugMap.keys.first()
+                onNutrientSelected(selectedNutrient!!)
+            }
+
+            renderNutrientChips()
         }
     }
+
+    private fun setupDonutChart(selected: String?) {
+
+        val entries = nutrientDrugMap.map { (nutrient, drugs) ->
+            PieEntry(drugs.size.toFloat(), nutrient)
+        }
+
+        val dataSet = PieDataSet(entries, "").apply {
+            colors = entries.map {
+                if (it.label == selected)
+                    Color.parseColor("#F2994A")
+                else
+                    Color.parseColor("#E0E0E0")
+            }
+
+            sliceSpace = 0f
+
+            // 🔥 추가
+            setDrawValues(false)   // 퍼센트/값 제거
+        }
+
+        nutrientChart.data = PieData(dataSet).apply {
+            setDrawValues(false)
+        }
+
+        nutrientChart.apply {
+            isDrawHoleEnabled = true
+            holeRadius = 40f
+            setUsePercentValues(true)
+
+            description.isEnabled = false
+            legend.isEnabled = false
+
+            // 🔥 핵심: 조각 라벨 제거
+            setDrawEntryLabels(false)
+
+            // 🔥 터치 차단
+            setTouchEnabled(false)
+            isHighlightPerTapEnabled = false
+
+            // 🔥 중앙 텍스트
+            centerText = selected ?: ""
+            setCenterTextColor(Color.BLACK)
+            setCenterTextSize(16f)
+            setCenterTextTypeface(android.graphics.Typeface.DEFAULT_BOLD)
+
+            invalidate()
+        }
+
+    }
+
+
 }
